@@ -1,0 +1,161 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_web_password_system/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class VerificationPage extends StatefulWidget {
+  final String email;
+  final String password;
+
+  // Pass both email and password to this page
+  const VerificationPage({super.key, required this.email, required this.password});
+
+  @override
+  State<VerificationPage> createState() => _VerificationPageState();
+}
+
+class _VerificationPageState extends State<VerificationPage> {
+  final TextEditingController codeController = TextEditingController();
+  final AuthService _auth = AuthService();
+  String? errorMessage;
+  bool _isLoading = false;
+
+  void _verifyCode() async {
+    setState(() {
+      errorMessage = null; // Clear previous errors
+      _isLoading = true;
+    });
+
+    if (codeController.text.isEmpty) {
+      setState(() {
+        errorMessage = '請輸入驗證碼';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // Step 2: Call the service to verify the code and register the user in Firebase
+      final user = await _auth.verifyCodeAndRegister(
+        widget.email,
+        widget.password,
+        codeController.text,
+      );
+
+      if (user != null) {
+        // Verification successful, navigate to the home page or login page
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      } else {
+        setState(() {
+          errorMessage = '驗證碼錯誤或已過期,請重試.';
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = '註冊失敗';
+      if (e.code == 'email-already-in-use') {
+        message = '此電子郵件已被使用';
+      } else {
+        message = '發生錯誤: ${e.message}';
+      }
+      setState(() {
+        errorMessage = message;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = '驗證失敗: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('電子郵件驗證'),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Card(
+              elevation: 8.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      '請輸入驗證碼',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '我們已將六位數驗證碼發送到您的電子郵件信箱:\n${widget.email}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: codeController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: '驗證碼',
+                        hintText: '請輸入六位數驗證碼',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                      ),
+                      maxLength: 6,
+                    ),
+                    const SizedBox(height: 24),
+                    if (errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _verifyCode,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('驗證'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
