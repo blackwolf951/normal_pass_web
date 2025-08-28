@@ -1,5 +1,5 @@
 # flutter_auth_system_final
-
+這是一個關於信箱驗證註冊帳號的小程式用於網頁和firebase的應用
 A new Flutter project.
 
 ## Getting Started
