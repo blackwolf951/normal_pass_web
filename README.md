@@ -23,10 +23,3 @@
 - 加入 Firebase Realtime Database 或 Firestore 作為使用者資料儲存  
 - 打造會員頁面或權限分級功能  
 
-##  部署方式  
-以下是簡易部署指南，視你所選平台而定：
-
-### GitHub Pages  
-```bash
-flutter build web  
-將 build/web 目錄內容推上 GitHub Pages  
